@@ -74,7 +74,6 @@
     <Compile Include="WebFiles\XsdCollection.cs" />
     <Compile Include="WebFiles\XsdCompiler.cs" />
     <Compile Include="WebFiles\XsdFile.cs" />
-    <Compile Include="WsdlCompiler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
