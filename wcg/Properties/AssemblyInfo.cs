@@ -7,9 +7,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("wcg")]
 [assembly: AssemblyDescription("Webservice Code Generator")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("WiredSky")]
+[assembly: AssemblyCompany("Graeme Wicksted")]
 [assembly: AssemblyProduct("wcg")]
-[assembly: AssemblyCopyright("Copyright © WiredSky 2017")]
+[assembly: AssemblyCopyright("Copyright © Graeme Wicksted 2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
