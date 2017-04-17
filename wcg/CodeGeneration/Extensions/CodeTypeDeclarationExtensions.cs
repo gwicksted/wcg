@@ -57,5 +57,15 @@ namespace wcg.CodeGeneration.Extensions
         {
             return decl.Members.OfType<CodeMemberField>();
         }
+
+        public static IEnumerable<CodeMemberProperty> Properties(this CodeTypeDeclaration decl)
+        {
+            return decl.Members.OfType<CodeMemberProperty>();
+        }
+
+        public static CodeConstructor DefaultConstructor(this CodeTypeDeclaration decl)
+        {
+            return decl.Members.OfType<CodeConstructor>().FirstOrDefault(c => c.Parameters.Count == 0) ?? decl.Members.OfType<CodeConstructor>().FirstOrDefault();
+        }
     }
 }

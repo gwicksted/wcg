@@ -7,17 +7,17 @@ namespace wcg.CodeGeneration.Extensions
     {
         public static bool IsBeginNewAsync(this CodeMemberMethod method)
         {
-            return IsPublic(method) && method.ReturnType.BaseType == "System.Void" && method.Name.EndsWith("Async");
+            return IsPublic(method) && method.ReturnType.IsVoid() && method.Name.EndsWith("Async");
         }
 
         public static bool IsBeginAsync(this CodeMemberMethod method)
         {
-            return IsPublic(method) && method.ReturnType.BaseType == "System.IAsyncResult";
+            return IsPublic(method) && method.ReturnType.IsIAsyncResult();
         }
 
         public static bool IsEndAsync(this CodeMemberMethod method)
         {
-            return IsPublic(method) && method.Parameters.OfType<CodeParameterDeclarationExpression>().Any(p => p.Type.BaseType == "System.IAsyncResult");
+            return IsPublic(method) && method.Parameters.OfType<CodeParameterDeclarationExpression>().Any(p => p.Type.IsIAsyncResult());
         }
 
         public static bool IsPrivate(this CodeMemberMethod method)

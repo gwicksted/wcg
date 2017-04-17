@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using wcg.CodeGeneration;
 
@@ -13,7 +14,12 @@ namespace wcg.WebFiles
         private readonly XsdCompiler _xsdc;
         private readonly WsdlCompiler _wsdlc;
 
+        private readonly IList<string> _generatedFiles = new List<string>();
+
         private readonly string _namespace;
+
+        private string _projectFile;
+        private Guid _projectGuid;
 
         private readonly IPostProcessor _postProcessor;
 
@@ -34,7 +40,9 @@ namespace wcg.WebFiles
 
             foreach (var xsdFile in _xsds.AllFiles)
             {
-                yield return new Compiland(_namespace + "." + _fileManager.GetFileName(xsdFile.Key), xsdFile.Value.Schema.TargetNamespace, xsdFile.Key, _fileManager.GetOutputPath(xsdFile.Key), xsdFile.Value.Includes.Select(i => _namespace + "." + i).ToArray());
+                string outFile = _fileManager.GetOutputPath(xsdFile.Key);
+                _generatedFiles.Add(outFile);
+                yield return new Compiland(_namespace + "." + _fileManager.GetFileName(xsdFile.Key), xsdFile.Value.Schema.TargetNamespace, xsdFile.Key, outFile, xsdFile.Value.Includes.Select(i => _namespace + "." + i).ToArray());
             }
         }
 
@@ -44,7 +52,9 @@ namespace wcg.WebFiles
 
             foreach (var wsdlFile in _wsdls.AllFiles)
             {
-                yield return new Compiland(_namespace + "." + _fileManager.GetFileName(wsdlFile.Key), wsdlFile.Value.ServiceDescription.TargetNamespace, wsdlFile.Key, _fileManager.GetOutputPath(wsdlFile.Key), wsdlFile.Value.Includes.Select(i => _namespace + "." + i).ToArray());
+                string outFile = _fileManager.GetOutputPath(wsdlFile.Key);
+                _generatedFiles.Add(outFile);
+                yield return new Compiland(_namespace + "." + _fileManager.GetFileName(wsdlFile.Key), wsdlFile.Value.ServiceDescription.TargetNamespace, wsdlFile.Key, outFile, wsdlFile.Value.Includes.Select(i => _namespace + "." + i).ToArray());
             }
         }
 
@@ -65,6 +75,42 @@ namespace wcg.WebFiles
 
             Output.Timed("Writing");
             _xsdc.Write(compiland);
+            Output.EndTimed();
+        }
+
+        public void CreateProject(string path)
+        {
+            if (!path.EndsWith(".csproj"))
+            {
+                path = path + ".csproj"; // allow namespace style project files
+            }
+
+            path = _fileManager.GetOutputPath(path, ".csproj");
+
+            Output.Timed("Project Creation");
+
+            _projectFile = path;
+
+            var generator = new ProjectFileGenerator(path, _namespace, _generatedFiles);
+            generator.Compile();
+            _projectGuid = generator.ProjectGuid;
+
+            Output.EndTimed();
+        }
+
+        public void CreateSolution(string path)
+        {
+            if (!path.EndsWith(".sln"))
+            {
+                path = path + ".sln"; // allow namespace style solution files
+            }
+
+            path = _fileManager.GetOutputPath(path, ".sln");
+
+            Output.Timed("Solution Creation");
+
+            new SolutionFileGenerator(path, _projectFile, _projectGuid).Compile();
+
             Output.EndTimed();
         }
 

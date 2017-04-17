@@ -21,7 +21,7 @@ namespace wcg.CodeGeneration
                         source.Members.Remove(ev);
                     }
 
-                    foreach (var callback in source.Fields().Where(f => f.Type.BaseType == "System.Threading.SendOrPostCallback").ToArray())
+                    foreach (var callback in source.Fields().Where(f => f.Type.IsSendOrPostCallback()).ToArray())
                     {
                         source.Members.Remove(callback);
                     }

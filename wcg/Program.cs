@@ -20,6 +20,12 @@ namespace wcg
             [Arg("out", ShortName = "o", Description = "The directory where generated code files will be placed")]
             public string OutPath { get; set; }
 
+            [Arg("solution", ShortName = "s", Description = "The file name for the solution (without the .sln extension)")]
+            public string Solution { get; set; }
+
+            [Arg("project", ShortName = "p", Description = "The file name for the project (without the .csproj extension)")]
+            public string Project { get; set; }
+
             [Arg("namespace", ShortName = "ns", Description = "The namespace to use for all generated code files")]
             public string Namespace { get; set; }
 
@@ -102,6 +108,17 @@ namespace wcg
                     _args.Namespace = "Wcg.Generated";
                 }
 
+
+                if (string.IsNullOrEmpty(_args.Project))
+                {
+                    _args.Project = _args.Namespace;
+
+                    if (string.IsNullOrEmpty(_args.Solution))
+                    {
+                        _args.Solution = _args.Namespace;
+                    }
+                }
+
                 // TODO: if URLs provided, pull those files -- same with links within the files
 
 
@@ -112,6 +129,8 @@ namespace wcg
                     Output.NameValue("XSD", _args.XsdPath);
                     Output.NameValue("OUT", _args.OutPath);
                     Output.NameValue("NS", _args.Namespace);
+                    Output.NameValue("Project", _args.Project);
+                    Output.NameValue("Solution", _args.Solution);
                     Output.NameValue("Interactive", _args.Interactive.ToString());
                     Output.NameValue("Recursive", _args.Recursive.ToString());
                     Output.NameValue("Verbose", _args.Verbose.ToString());
@@ -195,6 +214,24 @@ namespace wcg
                         Output.Line();
 
                         compiler.CompileWsdl(compiland);
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(_args.Project))
+                {
+                    Output.Line();
+                    Output.Action("Creating Project File", _args.Project);
+                    Output.Line();
+
+                    compiler.CreateProject(_args.Project);
+
+                    if (!string.IsNullOrEmpty(_args.Solution))
+                    {
+                        Output.Line();
+                        Output.Action("Creating Solution File", _args.Solution);
+                        Output.Line();
+
+                        compiler.CreateSolution(_args.Solution);
                     }
                 }
 

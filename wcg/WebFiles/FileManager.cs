@@ -116,23 +116,23 @@ namespace wcg.WebFiles
             return Path.GetFullPath(Path.Combine(dir, importFile));
         }
 
-        public string GetFileName(string path)
+        public string GetFileName(string path, string ext = WebservicePostfix)
         {
             var fileName = Path.GetFileNameWithoutExtension(path);
 
             if (IsWsdl(path) && !fileName.EndsWith(WebservicePostfix, StringComparison.OrdinalIgnoreCase))
             {
-                fileName = fileName + WebservicePostfix;
+                fileName = fileName + ext;
             }
 
             return fileName;
         }
 
-        public string GetOutputPath(string path)
+        public string GetOutputPath(string path, string ext = GeneratedExtension)
         {
             var fileName = GetFileName(path);
 
-            return Path.GetFullPath(Path.Combine(_output, fileName + GeneratedExtension));
+            return Path.GetFullPath(Path.Combine(_output, fileName + ext));
         }
     }
 }

@@ -27,7 +27,7 @@ namespace wcg.CodeGeneration
 
         private bool NotAlreadyPresent(CodeMemberMethod method)
         {
-            return method.CustomAttributes.OfType<CodeAttributeDeclaration>().All(c => c.Name != _attributeName);
+            return method.CustomAttributes.FirstOrDefault(c => c.Name == _attributeName) == null;
         }
 
         private bool IsApplicable(CodeMemberMethod method)
