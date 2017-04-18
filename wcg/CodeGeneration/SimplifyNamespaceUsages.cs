@@ -1,7 +1,6 @@
 ﻿using System;
 using System.CodeDom;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using wcg.CodeGeneration.Extensions;
 
@@ -26,7 +25,7 @@ namespace wcg.CodeGeneration
                     SimplifyExpression(field.InitExpression);
                 }
 
-                foreach (var snippet in source.Members.OfType<CodeSnippetTypeMember>())
+                foreach (var snippet in source.Snippets())
                 {
                     if (snippet.Text.Contains("{ get; set; }"))
                     {
@@ -48,13 +47,6 @@ namespace wcg.CodeGeneration
 
                             snippet.Text = output;
                         }
-
-                        // public type name
-
-                        //"System.Xml.Serialization.XmlElementAttribute"
-                        //"System.Xml.Serialization.XmlAttributeAttribute"
-                        //"System.Xml.Serialization.XmlIgnoreAttribute"
-                        //"System.ComponentModel.EditorBrowsableAttribute"
                     }
                 }
 
@@ -65,61 +57,55 @@ namespace wcg.CodeGeneration
                     
                     if (property.HasGet)
                     {
-                        foreach (var statement in property.GetStatements.OfType<CodeStatement>())
-                        {
-                            SimplifyStatement(statement);
-                        }
+                        SimplifyStatements(property.GetStatements);
                     }
 
                     if (property.HasSet)
                     {
-                        foreach (var statement in property.SetStatements.OfType<CodeStatement>())
-                        {
-                            SimplifyStatement(statement);
-                        }
+                        SimplifyStatements(property.SetStatements);
                     }
 
                     SimplifyTypes(property.ImplementationTypes);
                 }
-
-                foreach (var typeParam in source.TypeParameters.OfType<CodeTypeParameter>())
-                {
-                    SimplifyTypes(typeParam.Constraints);
-
-                    SimplifyAttributes(typeParam.CustomAttributes);
-                }
-
+                
+                SimplifyTypeParameters(source.TypeParameters);
+                
                 foreach (var member in source.Methods())
                 {
                     SimplifyType(member.ReturnType);
                     SimplifyType(member.PrivateImplementationType);
 
-                    foreach (var typeParam in member.TypeParameters.OfType<CodeTypeParameter>())
-                    {
-                        SimplifyTypes(typeParam.Constraints);
-
-                        SimplifyAttributes(typeParam.CustomAttributes);
-                    }
-
+                    SimplifyTypeParameters(member.TypeParameters);
+                    
                     SimplifyAttributes(member.CustomAttributes);
                     SimplifyAttributes(member.ReturnTypeCustomAttributes);
-                    
-                    foreach (var parameter in member.Parameters.OfType<CodeParameterDeclarationExpression>())
-                    {
-                        SimplifyType(parameter.Type);
-                        SimplifyAttributes(parameter.CustomAttributes);
-                    }
+
+                    SimplifyParameters(member.Parameters);
 
                     SimplifyTypes(member.ImplementationTypes);
-                    
-                    foreach (var statement in member.Statements.OfType<CodeStatement>())
-                    {
-                        SimplifyStatement(statement);
-                    }
+                    SimplifyStatements(member.Statements);
                 }
             }
 
             codeNamespace.Imports.AddRange(_imports.Select(i => new CodeNamespaceImport(i)).ToArray());
+        }
+
+        private void SimplifyParameters(CodeParameterDeclarationExpressionCollection parameters)
+        {
+            foreach (var parameter in parameters.OfType<CodeParameterDeclarationExpression>())
+            {
+                SimplifyType(parameter.Type);
+                SimplifyAttributes(parameter.CustomAttributes);
+            }
+        }
+
+        private void SimplifyTypeParameters(CodeTypeParameterCollection parameters)
+        {
+            foreach (var parameter in parameters.OfType<CodeTypeParameter>())
+            {
+                SimplifyTypes(parameter.Constraints);
+                SimplifyAttributes(parameter.CustomAttributes);
+            }
         }
 
         private void SimplifyTypes(CodeTypeReferenceCollection types)
@@ -178,14 +164,8 @@ namespace wcg.CodeGeneration
             if (conditional != null)
             {
                 SimplifyExpression(conditional.Condition);
-                foreach (var trueStatement in conditional.TrueStatements.OfType<CodeStatement>())
-                {
-                    SimplifyStatement(trueStatement);
-                }
-                foreach (var falseStatement in conditional.FalseStatements.OfType<CodeStatement>())
-                {
-                    SimplifyStatement(falseStatement);
-                }
+                SimplifyStatements(conditional.TrueStatements);
+                SimplifyStatements(conditional.FalseStatements);
             }
 
             var expression = statement as CodeExpressionStatement;
@@ -200,10 +180,7 @@ namespace wcg.CodeGeneration
                 SimplifyStatement(iteration.IncrementStatement);
                 SimplifyStatement(iteration.InitStatement);
                 SimplifyExpression(iteration.TestExpression);
-                foreach (var iterationStatement in iteration.Statements.OfType<CodeStatement>())
-                {
-                    SimplifyStatement(iterationStatement);
-                }
+                SimplifyStatements(iteration.Statements);
             }
 
             var throwException = statement as CodeThrowExceptionStatement;
@@ -215,24 +192,34 @@ namespace wcg.CodeGeneration
             var tryStatement = statement as CodeTryCatchFinallyStatement;
             if (tryStatement != null)
             {
-                foreach (var tried in tryStatement.TryStatements.OfType<CodeStatement>())
-                {
-                    SimplifyStatement(tried);
-                }
+                SimplifyStatements(tryStatement.TryStatements);
+                SimplifyCatchClauses(tryStatement.CatchClauses);
+                SimplifyStatements(tryStatement.FinallyStatements);
+            }
+        }
 
-                foreach (var catcher in tryStatement.CatchClauses.OfType<CodeCatchClause>())
-                {
-                    SimplifyType(catcher.CatchExceptionType);
-                    foreach (var catchStatement in catcher.Statements.OfType<CodeStatement>())
-                    {
-                        SimplifyStatement(catchStatement);
-                    }
-                }
+        private void SimplifyCatchClauses(CodeCatchClauseCollection catches)
+        {
+            foreach (var catcher in catches.OfType<CodeCatchClause>())
+            {
+                SimplifyType(catcher.CatchExceptionType);
+                SimplifyStatements(catcher.Statements);
+            }
+        }
 
-                foreach (var finallyStatement in tryStatement.FinallyStatements.OfType<CodeStatement>())
-                {
-                    SimplifyStatement(finallyStatement);
-                }
+        private void SimplifyStatements(CodeStatementCollection statements)
+        {
+            foreach (var statement in statements.OfType<CodeStatement>())
+            {
+                SimplifyStatement(statement);
+            }
+        }
+
+        private void SimplifyExpressions(CodeExpressionCollection expressions)
+        {
+            foreach (var parameter in expressions.OfType<CodeExpression>())
+            {
+                SimplifyExpression(parameter);
             }
         }
 
@@ -242,30 +229,21 @@ namespace wcg.CodeGeneration
             if (create != null)
             {
                 SimplifyType(create.CreateType);
-                foreach (var parameter in create.Parameters.OfType<CodeExpression>())
-                {
-                    SimplifyExpression(parameter);
-                }
+                SimplifyExpressions(create.Parameters);
             }
 
             var arr = expression as CodeArrayCreateExpression;
             if (arr != null)
             {
                 SimplifyType(arr.CreateType);
-                foreach (var init in arr.Initializers.OfType<CodeExpression>())
-                {
-                    SimplifyExpression(init);
-                }
+                SimplifyExpressions(arr.Initializers);
                 SimplifyExpression(arr.SizeExpression);
             }
 
             var arrInd = expression as CodeArrayIndexerExpression;
             if (arrInd != null)
             {
-                foreach (var index in arrInd.Indices.OfType<CodeExpression>())
-                {
-                    SimplifyExpression(index);
-                }
+                SimplifyExpressions(arrInd.Indices);
                 SimplifyExpression(arrInd.TargetObject);
             }
 
@@ -300,10 +278,7 @@ namespace wcg.CodeGeneration
             if (delegateInvoke != null)
             {
                 SimplifyExpression(delegateInvoke.TargetObject);
-                foreach (var param in delegateInvoke.Parameters.OfType<CodeExpression>())
-                {
-                    SimplifyExpression(param);
-                }
+                SimplifyExpressions(delegateInvoke.Parameters);
             }
 
             var direction = expression as CodeDirectionExpression;
@@ -321,20 +296,7 @@ namespace wcg.CodeGeneration
             var fieldRef = expression as CodeFieldReferenceExpression;
             if (fieldRef != null)
             {
-                if (fieldRef.FieldName.Contains('.'))
-                {
-                    var split = SplitNamespace(fieldRef.FieldName);
-
-                    string ns = split.Item1;
-                    string name = split.Item2;
-
-                    if (!string.IsNullOrEmpty(ns))
-                    {
-                        _imports.Add(ns);
-                        fieldRef.FieldName = name;
-                    }
-                }
-
+                ApplySimplification(fieldRef, f => f.FieldName, (f, n) => f.FieldName = n);
                 SimplifyExpression(fieldRef.TargetObject);
             }
 
@@ -342,20 +304,14 @@ namespace wcg.CodeGeneration
             if (indexer != null)
             {
                 SimplifyExpression(indexer.TargetObject);
-                foreach (var index in indexer.Indices.OfType<CodeExpression>())
-                {
-                    SimplifyExpression(index);
-                }
+                SimplifyExpressions(indexer.Indices);
             }
 
             var call = expression as CodeMethodInvokeExpression;
             if (call != null)
             {
                 SimplifyMethodReference(call.Method);
-                foreach (var parameter in call.Parameters.OfType<CodeExpression>())
-                {
-                    SimplifyExpression(parameter);
-                }
+                SimplifyExpressions(call.Parameters);
             }
 
             var methodRef = expression as CodeMethodReferenceExpression;
@@ -368,27 +324,13 @@ namespace wcg.CodeGeneration
             if (parameterDecl != null)
             {
                 SimplifyType(parameterDecl.Type);
-
                 SimplifyAttributes(parameterDecl.CustomAttributes);
             }
 
             var propRef = expression as CodePropertyReferenceExpression;
             if (propRef != null)
             {
-                if (propRef.PropertyName.Contains('.'))
-                {
-                    var split = SplitNamespace(propRef.PropertyName);
-
-                    string ns = split.Item1;
-                    string name = split.Item2;
-
-                    if (!string.IsNullOrEmpty(ns))
-                    {
-                        _imports.Add(ns);
-                        propRef.PropertyName = name;
-                    }
-                }
-
+                ApplySimplification(propRef, p => p.PropertyName, (p, n) => p.PropertyName = n);
                 SimplifyExpression(propRef.TargetObject);
             }
 
@@ -407,19 +349,7 @@ namespace wcg.CodeGeneration
 
         private void SimplifyMethodReference(CodeMethodReferenceExpression method)
         {
-            if (method.MethodName.Contains('.'))
-            {
-                var split = SplitNamespace(method.MethodName);
-
-                string ns = split.Item1;
-                string name = split.Item2;
-
-                if (!string.IsNullOrEmpty(ns))
-                {
-                    _imports.Add(ns);
-                    method.MethodName = name;
-                }
-            }
+            ApplySimplification(method, m => m.MethodName, (m, n) => m.MethodName = n);
 
             SimplifyTypes(method.TypeArguments);
 
@@ -428,29 +358,20 @@ namespace wcg.CodeGeneration
 
         private void SimplifyAttribute(CodeAttributeDeclaration instance)
         {
-            var split = SplitNamespace(instance.Name);
-            
-            string ns = split.Item1;
-            string name = split.Item2;
-            
-            if (name.EndsWith("Attribute", StringComparison.Ordinal))
-            {
-                name = name.Substring(0, name.Length - 9);
-            }
+            ApplySimplification(instance, i => i.Name, (i, n) => i.Name = n);
 
-            if (!string.IsNullOrEmpty(ns))
+            if (instance.Name.EndsWith("Attribute", StringComparison.Ordinal))
             {
-                _imports.Add(ns);
-                instance.Name = name;
-            }
-            else
-            {
-                instance.Name = name;
+                instance.Name = instance.Name.Substring(0, instance.Name.Length - 9);
             }
             
             SimplifyType(instance.AttributeType);
+            SimplifyArguments(instance.Arguments);
+        }
 
-            foreach (var arg in instance.Arguments.OfType<CodeAttributeArgument>())
+        private void SimplifyArguments(CodeAttributeArgumentCollection args)
+        {
+            foreach (var arg in args.OfType<CodeAttributeArgument>())
             {
                 SimplifyArgument(arg);
             }
@@ -458,16 +379,7 @@ namespace wcg.CodeGeneration
 
         private void SimplifyArgument(CodeAttributeArgument arg)
         {
-            var split = SplitNamespace(arg.Name);
-
-            string ns = split.Item1;
-            string name = split.Item2;
-
-            if (!string.IsNullOrEmpty(ns))
-            {
-                _imports.Add(ns);
-                arg.Name = name;
-            }
+            ApplySimplification(arg, a => a.Name, (a, n) => a.Name = n);
 
             SimplifyExpression(arg.Value);
         }
@@ -478,10 +390,24 @@ namespace wcg.CodeGeneration
             {
                 return;
             }
+            
+            ApplySimplification(type, t => t.BaseType, (t, n) => t.BaseType = n);
 
-            string typeName = type.BaseType;
+            if (type.TypeArguments != null)
+            {
+                SimplifyTypes(type.TypeArguments);
+            }
+        }
 
-            var split = SplitNamespace(typeName);
+        private void ApplySimplification<T>(T obj, Func<T, string> getTypeName, Action<T, string> nameChange)
+        {
+            if (ReferenceEquals(obj, null))
+            {
+                return;
+            }
+
+            string fullName = getTypeName.Invoke(obj);
+            var split = SplitNamespace(fullName);
 
             string ns = split.Item1;
             string name = split.Item2;
@@ -489,12 +415,7 @@ namespace wcg.CodeGeneration
             if (!string.IsNullOrEmpty(ns))
             {
                 _imports.Add(ns);
-                type.BaseType = name;
-            }
-
-            if (type.TypeArguments != null)
-            {
-                SimplifyTypes(type.TypeArguments);
+                nameChange(obj, name);
             }
         }
 

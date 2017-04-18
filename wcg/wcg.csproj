@@ -45,6 +45,8 @@
   <ItemGroup>
     <Compile Include="ApplicationUtilities.cs" />
     <Compile Include="CodeGeneration\AddComments.cs" />
+    <Compile Include="CodeGeneration\Extensions\CodeCommentExtensions.cs" />
+    <Compile Include="CodeGeneration\RemoveEmptyRemarksComments.cs" />
     <Compile Include="CodeGeneration\Extensions\EnumerableExtensions.cs" />
     <Compile Include="CodeGeneration\SimplifyNamespaceUsages.cs" />
     <Compile Include="CodeGeneration\ApplyCustomAttribute.cs" />

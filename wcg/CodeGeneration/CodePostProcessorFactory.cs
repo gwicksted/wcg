@@ -14,6 +14,7 @@ namespace wcg.CodeGeneration
             new GenerateTaskApiMethods().PostProcess(codeNamespace);
             new ShorthandProperties().PostProcess(codeNamespace);
             new SimplifyNamespaceUsages().PostProcess(codeNamespace);
+            new RemoveEmptyRemarksComments().PostProcess(codeNamespace);
             new AddComments().PostProcess(codeNamespace);
         }
 

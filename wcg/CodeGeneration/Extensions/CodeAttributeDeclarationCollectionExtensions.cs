@@ -44,6 +44,11 @@ namespace wcg.CodeGeneration.Extensions
 
         public static string GenerateSourceCode(this CodeAttributeDeclarationCollection attributes, string indentation = "        ")
         {
+            if (attributes == null)
+            {
+                return string.Empty;
+            }
+
             StringBuilder generatedAttributes = new StringBuilder();
             foreach (CodeAttributeDeclaration declaration in attributes)
             {
