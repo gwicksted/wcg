@@ -45,6 +45,8 @@
   <ItemGroup>
     <Compile Include="ApplicationUtilities.cs" />
     <Compile Include="CodeGeneration\AddComments.cs" />
+    <Compile Include="CodeGeneration\Extensions\EnumerableExtensions.cs" />
+    <Compile Include="CodeGeneration\SimplifyNamespaceUsages.cs" />
     <Compile Include="CodeGeneration\ApplyCustomAttribute.cs" />
     <Compile Include="CodeGeneration\Extensions\CodeMemberEventExtensions.cs" />
     <Compile Include="CodeGeneration\CodePostProcessorFactory.cs" />

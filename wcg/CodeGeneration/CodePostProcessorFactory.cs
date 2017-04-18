@@ -13,6 +13,7 @@ namespace wcg.CodeGeneration
             new RemoveEventBasedCalls().PostProcess(codeNamespace);
             new GenerateTaskApiMethods().PostProcess(codeNamespace);
             new ShorthandProperties().PostProcess(codeNamespace);
+            new SimplifyNamespaceUsages().PostProcess(codeNamespace);
             new AddComments().PostProcess(codeNamespace);
         }
 

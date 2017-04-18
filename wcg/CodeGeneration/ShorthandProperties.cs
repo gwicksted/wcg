@@ -2,6 +2,7 @@
 using System.CodeDom;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -267,7 +268,7 @@ namespace wcg.CodeGeneration
                     proxy.CustomAttributes.Clear();
                     proxy.CustomAttributes.AddRange(property.CustomAttributes);
                     SpecifyXmlNameIfRequired(proxy, property.Name);
-                    proxy.CustomAttributes.AddOrReplace(new CodeAttributeDeclaration("System.ComponentModel.EditorBrowsableAttribute", new CodeAttributeArgument(new CodeSnippetExpression("System.ComponentModel.EditorBrowsableState.Never"))));
+                    proxy.CustomAttributes.AddOrReplace(new CodeAttributeDeclaration("System.ComponentModel.EditorBrowsableAttribute", new CodeAttributeArgument(new CodeFieldReferenceExpression(new CodeTypeReferenceExpression("System.ComponentModel.EditorBrowsableState"), "Never"))));
                     source.Members.Add(proxy);
 
                     //var proxySpecified = new CodeSnippetTypeMember($"{indentation}{accessor} bool {proxySpecifiedPropertyName} {{ get; set; }}");
@@ -285,7 +286,8 @@ namespace wcg.CodeGeneration
 
                     proxySpecified.CustomAttributes.Clear();
                     proxySpecified.CustomAttributes.Add(new CodeAttributeDeclaration("System.Xml.Serialization.XmlIgnoreAttribute"));
-                    proxySpecified.CustomAttributes.AddOrReplace(new CodeAttributeDeclaration("System.ComponentModel.EditorBrowsableAttribute", new CodeAttributeArgument(new CodeSnippetExpression("System.ComponentModel.EditorBrowsableState.Never"))));
+                    proxySpecified.CustomAttributes.AddOrReplace(new CodeAttributeDeclaration("System.ComponentModel.EditorBrowsableAttribute", new CodeAttributeArgument(new CodeFieldReferenceExpression(new CodeTypeReferenceExpression("System.ComponentModel.EditorBrowsableState"), "Never"))));
+
                     source.Members.Add(proxySpecified);
                 }
 
@@ -306,8 +308,7 @@ namespace wcg.CodeGeneration
                     bool propertyNameChanged = !propertyName.Equals(property.Name, StringComparison.Ordinal);
 
                     // array types getting messed up too!
-
-
+                    
                     var replacement = new CodeSnippetTypeMember($"{indentation}{accessor} {escapedTypeName} {escapedPropertyName} {{ get; set; }}{GetDefaultAssignmentCode(ctor, privateFieldName)}");
                     replacement.Attributes = property.Attributes;
                     replacement.CustomAttributes.Clear();
@@ -318,45 +319,8 @@ namespace wcg.CodeGeneration
                     }
                     
                     StringBuilder generatedAttributes = new StringBuilder();
-                    foreach (CodeAttributeDeclaration declaration in replacement.CustomAttributes)
-                    {
-                        
-                        generatedAttributes.Append(indentation);
-                        generatedAttributes.Append("[");
-                        generatedAttributes.Append(declaration.Name.EscapeNamespace());
-                        if (declaration.Arguments.Count > 0)
-                        {
-                            generatedAttributes.Append("(");
-                            bool first = true;
-
-                            foreach (CodeAttributeArgument argument in declaration.Arguments)
-                            {
-                                if (!first)
-                                {
-                                    generatedAttributes.Append(", ");
-                                }
-                                else
-                                {
-                                    first = false;
-                                }
-
-                                if (!string.IsNullOrEmpty(argument.Name))
-                                {
-                                    generatedAttributes.Append(CodeIdentifier.MakeValid(argument.Name));
-                                    generatedAttributes.Append(" = ");
-                                }
-
-                                using (var stringWriter = new StringWriter(generatedAttributes))
-                                {
-                                    new CSharpCodeProvider().GenerateCodeFromExpression(argument.Value, stringWriter, new CodeGeneratorOptions());
-                                }
-                            }
-
-                            generatedAttributes.Append(")");
-                        }
-                        generatedAttributes.AppendLine("]");
-                    }
-
+                    generatedAttributes.Append(replacement.CustomAttributes.GenerateSourceCode(indentation));
+                    
                     generatedAttributes.AppendLine(replacement.Text);
 
                     replacement.Text = generatedAttributes.ToString();
